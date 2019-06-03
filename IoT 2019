@@ -1,0 +1,477 @@
+
+2.1 โค้ตปี2 
+const bodyParser = require('body-parser')
+//const request = require('request')
+const express = require('express')
+const mongoose = require('mongoose')
+var  request = require('request')
+
+const app = express()
+const port = process.env.PORT || 4000
+var Schema = mongoose.Schema
+mongoose.Promise = global.Promise
+mongoose.connect(process.env.mongoose_URT || 'mongodb://localhost:27017/Newdb').then(()=>{
+    console.log('@@@ Connect Success @@@')
+},()=>{
+    console.log('!!! Fail to connect !!!')
+})
+
+
+const hostname = '127.0.0.1'
+const HEADERS = {
+	'Content-Type': 'application/json',
+	'Authorization': 'qxZlD49e1k03xoJMxMzC2MXRMlybafz3/EgaUJcAAEpYdtyvDL9uRygbDKpSHCHPoHTnp9sew4kOqxMuw2vGhQ0H/DyLOLZ8+DGQ98RCbLQI+QLiVB/UuawFHh82pe2Hd3IhnaULxZq+zNBeYrlbHwdB04t89/1O/w1cDnyilFU='
+	
+}
+
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+
+// Push
+app.get('/webhook', (req, res) => {
+	// push block
+	let msg = 'Hello_IoT'
+	push(msg)
+	res.send(msg)
+})
+
+// Reply
+
+app.post('/webhook', (req, res) => {
+	// reply block
+	let reply_token = req.body.events[0].replyToken
+	let msg = req.body.events[0].message.text
+	if(msg.slice(0,3) == 'get'){
+		data.find({age:{$eq:parseInt(msg.slice(3))}}).then((docs)=>{
+            let msg_send = 'SID : '+ docs[0].s_id + '\nName : '
++ docs[0].name + '\nAge : ' + docs[0].age         
+ reply(reply_token,msg_send )
+			console.log(docs)
+		
+			 var options = {
+		uri : "https://4d19e8e4.ngrok.io",
+		method : "GET"
+	}
+	request(Option,(error,response,body)=>{
+		console.log(body)
+		
+	})
+        })
+	}else{
+		reply(reply_token, msg)
+	}
+	//reply(reply_token, msg)
+})
+
+
+app.post('/webhook', (req, res) => {
+	// reply block
+	let reply_token = req.body.events[0].replyToken
+	let msg = req.body.events[0].message.text
+	if(msg == 'Hello'){
+		reply(reply_token, 'Hi!!')
+	}else{
+		reply(reply_token, msg)
+	}
+	//reply(reply_token, msg)
+})
+
+app.get('/gettemp', (req,res)=>{
+    data.find({temp:{$gt:parseInt(req.params.temp)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+app.get('/gethumi', (req,res)=>{
+    data.find({humi:{$gt:parseInt(req.params.humi)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+app.get('/getwater', (req,res)=>{
+    data.find({water:{$gt:parseInt(req.params.water)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+app.get('/getgas', (req,res)=>{
+    data.find({gas:{$gt:parseInt(req.params.gas)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+function push(msg) {
+	let body = JSON.stringify({
+		// push body
+		to:'Ufd8ee99364ff78cbcd432060e5effdea',
+		messages: [
+			{
+				type: 'text',
+				text: msg
+			}
+		]
+	})
+	curl('push', body)
+}
+
+function reply(reply_token, msg) {
+	let body = JSON.stringify({
+		// reply body
+		replyToken: reply_token,
+		messages: [
+			{
+				type: 'text',
+				text: msg
+			}
+		]
+	})
+	curl('reply', body);
+}
+
+function curl(method, body) {
+	request.post({
+		url: 'https://api.line.me/v2/bot/message/' + method,
+		headers: HEADERS,
+		body: body
+	}, (err, res, body) => {
+		console.log('status = ' + res.statusCode)
+	})
+}
+
+app.listen(process.env.PORT || port, hostname, () => {
+	console.log(`Server running at http://${hostname}:${port}/`)
+})
+
+//.........................................................................
+
+var dataSchema = new Schema({
+	//s_id : {type :String, required : true, unique : true},
+	id : {type :String, required : true, unique : true},
+	temp : {type :Number, required : true},
+    humi : {type :Number, required : true},
+	water : {type :String, required : true},
+	gas : {type :Number, required : true},
+	dust: {
+		d1_0: {
+		  require: true,
+		  type: String
+		},
+		d2_5: {
+		  require: true,
+		  type: String
+		},
+		d10_0: {
+		  require: true,
+		  type: String
+		}
+	  },
+	  date: { require: true, type: String }
+	});
+
+var data = mongoose.model('DB_Table', dataSchema)
+
+app.get('/getall', (req,res)=>{
+    data.find({}).then((docs)=>{
+        res.send(docs)
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+app.listen(4567);
+app.post("/post", (req, res) => {
+	data.find().then(doc => {
+	  let time = req.body.DevEUI_uplink.Time;
+	  let posT = time.search("T");
+	  let hex2str = hex_to_ascii(req.body.DevEUI_uplink.payload_hex);
+	  let buf = new data({
+		id: doc.length,
+		temp: hex2str.slice(0, hex2str.search("T")),
+		humi: hex2str.slice(hex2str.search("T") + 1, hex2str.search("H")),
+		water: hex2str.slice(hex2str.search("H") + 1, hex2str.search("W")),
+		gas: hex2str.slice(hex2str.search("W") + 1, hex2str.search("G")),
+		dust: {
+		  d1_0: hex2str.slice(hex2str.search("G") + 1, hex2str.search("D1_0")),
+		  d2_5: hex2str.slice(hex2str.search("D1_0") + 4, hex2str.search("D2_5")),
+		  d10_0: hex2str.slice(
+			hex2str.search("D2_5") + 4,
+			hex2str.search("D10_0")
+		  )
+		},
+		date:
+		  time.slice(posT - 2, posT) +
+		  time.slice(posT - 5, posT - 3) +
+		  time.slice(posT - 8, posT - 6) +
+		  time.slice(posT + 1, posT + 3) +
+		  time.slice(posT + 4, posT + 6) +
+		  time.slice(posT + 7, posT + 9)
+	  });
+	  buf.save().then(
+		doc => {
+		  res.send("save to db\n" + doc);
+		},
+		e => {
+		  res.status(400).send("can not save to database\n" + e);
+		}
+	  );
+	});
+  });
+
+
+
+app.get('/getall', (req,res)=>{
+    data.find({}).then((docs)=>{
+        res.send(docs)
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+
+app.get('/getlast', (req,res)=>{
+    data.find().then(doc => {
+		res.send(doc[Object.keys(doc).length - 1]);
+	  });
+	});
+
+app.get('/getdrop', (req,res)=>{
+    data.remove({}).then((docs)=>{
+        res.send(docs)
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+/*
+
+app.get('/getdust', (req,res)=>{
+    data.find({duse:{$gt:parseInt(req.params.dus)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+app.get('/getD1.0', (req,res)=>{
+    data.find({1.0:{$gt:parseInt(req.params.1.0)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+app.get('/getD2.5', (req,res)=>{
+	data.find({age:{$gt:parseInt(req.params.age1)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+app.get('/get10.0', (req,res)=>{
+	data.find({age:{$gt:parseInt(req.params.age1)}}).then((docs)=>{
+        res.send(docs)
+    
+    },(err)=>{
+		res.status(400).send(err)
+	})
+
+})
+
+*/
+
+app.get('/linegetdata', (req,res)=>{
+    var options = {
+		uri : "",
+		method : "GET/POTS"
+	}
+	request(Option,(error,response,body)=>{
+        console.log(body)
+	})
+ })
+
+app.get('/getrevious/:x', (req,res)=>{
+    data.find().then(doc => {
+		res.send(doc[Object.keys(doc).x - 1]);
+	  });
+	});
+
+
+
+
+app.get('/getbyage/:age1', (req,res)=>{
+    data.find({age:{$gt:parseInt(req.params.age1)}}).then((docs)=>{
+        res.send(docs)
+    })
+})
+
+
+app.get('/getbtw/:T_A/:T_B', (req,res)=>{
+    data.find({date:{$gt:req.params.T_A,$lt:req.params.T_B}}).then((docs)=>{
+        res.send(docs)
+    })
+})
+
+app.get('/delete', (req,res)=>{
+	data.remove({},(docs)=>{
+		res.send('Drop complete')
+	})
+})
+
+app.post('/postdata', (req,res)=>{
+    let buffer = new data({
+		//s_id : req.body.s_id,
+		id : req.body.id,
+		//temp : req.body.DevEVI_uplink.payload_hex,
+		temp : req.body.temp,
+        humi : req.body.humi,
+		water :req.body.water,
+		gas :req.body.gas,
+		dust :req.body.dust,d1_0 : req.body.d1_0,
+		//temp : req.body.DevEVI_uplink.payload_hex,
+		d2_5 : req.body.d2_5,
+        d10_0 : req.body.d10_0,
+		date :req.body.date
+		
+    })
+    buffer.save().then((docs)=>{
+        res.send(docs)
+    },(err)=>{
+        res.status(404).send(err)
+    })
+})
+
+
+app.post('/postdata', (req,res)=>{
+    let buffer = new data({
+		//s_id : req.body.s_id,
+		d1_0 : req.body.d1_0,
+		//temp : req.body.DevEVI_uplink.payload_hex,
+		d2_5 : req.body.d2_5,
+        d10_0 : req.body.d10_0
+		
+    })
+    buffer.save().then((docs)=>{
+        res.send(docs)
+    },(err)=>{
+        res.status(404).send(err)
+    })
+})
+
+app.post('/postmethod', (req,res)=>{
+    let buffer = new data({
+		//s_id : req.body.s_id,
+		gas : req.body.gas,
+		//temp : req.body.DevEVI_uplink.payload_hex,
+       dust : req.body.dust,
+       // age :req.body.age
+    })
+    buffer.save().then((docs)=>{
+        res.send(docs)
+    },(err)=>{
+        res.status(404).send(err)
+    })
+})
+
+function hex_to_ascii(str1) {
+	var hex = str1.toString();
+	var str = "";
+	for (var n = 0; n < hex.length; n += 2) {
+	  str += String.fromCharCode(parseInt(hex.substr(n, 2), 16));
+	}
+  
+	return str;
+  }
+
+
+2.2 โค้ตปี1 ทั้งหมด
+
+#include <Wire.h>
+#include <SoftwareSerial.h>
+#include <AM2320.h>
+AM2320 th;
+SoftwareSerial mySerial(10,11);
+void setup() {
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, INPUT);
+  pinMode(7, INPUT);
+  Serial.begin(9600);
+  mySerial.begin(9600);
+}
+
+void loop() {
+  String T,H,W,G;
+
+  G = String(analogRead(0));
+  
+  switch(th.Read()) {
+    case 0:
+      H = String(th.h);
+      T = String(th.t);
+      break;
+    default:
+      T = "-1";
+      H = "-1";
+      break;
+  }
+
+  Serial.print(T);
+  Serial.print("T");
+  Serial.print(H);
+  Serial.print("H");
+  
+  if((digitalRead(6)==LOW)&&(digitalRead(7)==LOW)){
+    W = "00";
+    digitalWrite(4, HIGH);
+    digitalWrite(5, LOW);
+    Serial.print("00W");
+  }else if((digitalRead(6)==HIGH)&&(digitalRead(7)==LOW)){
+    W = "01";
+    digitalWrite(4, HIGH);
+    analogWrite(5, HIGH);
+    Serial.print("01W");
+  }else if((digitalRead(6)==LOW)&&(digitalRead(7)==HIGH)){
+    W = "XX";
+    digitalWrite(4, LOW);
+    digitalWrite(5, LOW);
+    Serial.print("XXW");
+  }else if((digitalRead(6)==HIGH)&&(digitalRead(7)==HIGH)){
+    W = "11";
+    digitalWrite(4, LOW);
+    digitalWrite(5, HIGH);
+    Serial.print("11W");
+  }
+
+  String buf = "Hello IoTs_Challenge 2019";
+  
+  Serial.print(G);
+  Serial.print("G");
+  //Serial.print(buf);   // read it and send it out Serial (USB)
+  Serial.print("\n");
+  mySerial.print(buf);
+  delay(3000);
+  
+}
